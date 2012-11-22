@@ -115,6 +115,8 @@ function composition2(minimums, maximums, counter, i, k, result) {
  * and maximum number of each type of card that can appear in the hand.
  * 'hand_size' is the number of cards in the hand.
  *
+ * Deck size is taken to be the sum of all the elements of 'cards'
+ *
  * Example:
  * We have 25 mountains, 4 Searing Spears (converted mana cost of 2),
  * and 60-25-4 = 31 other cards. What is the probability
@@ -140,10 +142,24 @@ function composition2(minimums, maximums, counter, i, k, result) {
  *
  */
 function hand_probability(cards, hand_size, minimums, maximums) {
+  cards = cards[0] || [cards];
+
+  var deck_size = 0;
+  cards.forEach(function(x) { deck_size += x; });
+
+  var combinations = hand_combinations([cards], hand_size, minimums, maximums);
+  return combinations / binomial(deck_size, hand_size);
+}
+
+/* Same as hand_probability, except just returns total number of
+ * desired combinations, before it's been divided by the total
+ * number of possible combinations.
+ */
+function hand_combinations(cards, hand_size, minimums, maximums) {
   // Need to change this if arguments come in as a
   // vertical, as opposed to horizontal, range from
   // the spreadsheet.
-  cards = cards[0];
+  cards = cards[0] || [cards];
   maximums = maximums || [];
   maximums = maximums[0];
   minimums = minimums || [];
@@ -179,9 +195,6 @@ function hand_probability(cards, hand_size, minimums, maximums) {
     ksum += product;
   });
 
-  var deck_size = 0;
-  cards.forEach(function(x) { deck_size += x; });
-
-  return ksum / binomial(deck_size, hand_size);
+  return ksum;
 }
 
