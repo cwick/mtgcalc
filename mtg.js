@@ -47,24 +47,25 @@ function drawAtLeast(deck_size, hand_size, num_copies, x) {
 }
 
 /* Computes all the different ways
- * that objects from 'items' can be grouped
- * into 'k' buckets. 'restrictions' indicates
- * the minimum number of items of a particular
- * type that must be used in the grouping.
- * For example:
- * There are 15 objects of type A, 10 of type B, and
- * 2 of type C.
- * items = [15, 10, 2]
+ * that objects from can be grouped
+ * into 'k' buckets. 'minimums' and 'maximums' indicate
+ * the minimum and maximum number of items of a particular
+ * type that can be used in the grouping.
+ * For example, suppose our grouping restrictions are:
  *
- * There must be at least 2 type A objects, at least
- * one type B object, and at least one type C object.
- * restrictions = [2, 1, 1]
+ * There must be at least 2 objects of type A, at least
+ * one object of type B, and at least one object of type C.
+ * minimums = [2, 1, 1]
+ *
+ * There must be no more than 2 objects of type A.
+ * There is no maximum number for the other types.
+ * maximums = [2, undefined, undefined]
  *
  * We have 5 buckets in which to group all the objects.
  * k = 5.
  *
  * The output will be an array of arrays:
- * [[2, 1, 2], [2, 2, 1], [3, 1, 1]]
+ * [[2, 1, 2], [2, 2, 1]]
  *
  * Each element in each subarray indicates how
  * many slots an object of that type should occupy.
@@ -72,18 +73,19 @@ function drawAtLeast(deck_size, hand_size, num_copies, x) {
  * filled by type A, one slot is filled by type B,
  * and two slots are filled by type C". Notice that
  * the sum of all items in each subarray is equal
- * to k.
+ * to k. The number of different types is taken to
+ * be the length of the 'minimums' array.
  */
-function composition(items, restrictions, k) {
-  var counter = new Array(items.length);
+function composition(minimums, maximums, k) {
+  var counter = new Array(minimums.length);
   for (var i=0; i<counter.length; i++) {
     counter[i] = 0;
   }
 
-  return composition2(items, restrictions, counter, 0, k, []);
+  return composition2(minimums, maximums, counter, 0, k, []);
 }
 
-function composition2(items, restrictions, counter, i, k, result) {
+function composition2(minimums, maximums, counter, i, k, result) {
   if (i >= counter.length) {
     var sum = 0;
     counter.forEach(function(x) { sum += x; });
@@ -95,9 +97,10 @@ function composition2(items, restrictions, counter, i, k, result) {
     return;
   }
 
-  for (var x=restrictions[i]; x <= Math.min(k,items[i]); x++) {
+  var max = (maximums[i] == undefined) ? k : maximums[i];
+  for (var x=minimums[i]; x <= Math.min(k,max); x++) {
     counter[i] = x;
-    composition2(items, restrictions, counter, i+1, k, result);
+    composition2(minimums, maximums, counter, i+1, k, result);
   }
 
   return result;
@@ -108,8 +111,8 @@ function composition2(items, restrictions, counter, i, k, result) {
  * a hand of size 'hand_size'.
  * 'cards' is an array of numbers representing quantities of
  * different card types.
- * 'restrictions' is an array representing the minimum number
- * of each type of card that must appear in the hand.
+ * 'minimums' and 'maximums' are arrays representing the minimum
+ * and maximum number of each type of card that can appear in the hand.
  * 'hand_size' is the number of cards in the hand.
  *
  * Example:
@@ -124,27 +127,51 @@ function composition2(items, restrictions, counter, i, k, result) {
  * We need at least two mountains, at least one searing spear,
  * and zero or more other cards. i.e. We allow hands that contain
  * 5 mountains and two Searing Spears.
- * restrictions = [2, 1, 0]
+ * minimums = [2, 1, 0]
+ *
+ * There are no maximum restrictions. If we don't pass a value for
+ * 'maximums', then the maximum number of a particular type of
+ * card is taken to be the number of available cards of that
+ * particular type.
+ * minimums = undefined
  *
  * Starting hands have 7 cards.
  * hand_size = 7
  *
- * Note that although 'restrictions' only specify minimum quantities,
- * you can actually indirectly specify maximum quantities as well. For
- * example, if we wanted our opening hand to contain exactly two mountains
- * and exactly one searing spear, we could set 'restrictions' to [2,1,4],
- * thus ensuring that "other cards" (which aren't a mountain or searing spear),
- * occupy at least 4 slots.
  */
-function hand_probability(cards, restrictions, hand_size) {
+function hand_probability(cards, hand_size, minimums, maximums) {
   // Need to change this if arguments come in as a
   // vertical, as opposed to horizontal, range from
   // the spreadsheet.
   cards = cards[0];
-  restrictions = restrictions[0];
+  maximums = maximums || [];
+  maximums = maximums[0];
+  minimums = minimums || [];
+  minimums = minimums[0];
+
+  if (maximums == undefined) {
+    maximums = new Array(cards.length);
+  }
+  if (minimums == undefined) {
+    minimums = new Array(cards.length);
+  }
+
+  // Minimums default to 0
+  for (var i=0 ; i<minimums.length ;i++) {
+    if (minimums[i] == undefined) {
+      minimums[i] = 0;
+    }
+  }
+  // Maximums for a card type default to
+  // the total number of cards of that type
+  for (var i=0 ; i<maximums.length ;i++) {
+    if (maximums[i] == undefined) {
+      maximums[i] = cards[i];
+    }
+  }
 
   var ksum = 0;
-  composition(cards, restrictions, hand_size).forEach(function(c) {
+  composition(minimums, maximums, hand_size).forEach(function(c) {
     var product = 1;
     c.forEach(function(k, idx) {
       product *= binomial(cards[idx], k);
