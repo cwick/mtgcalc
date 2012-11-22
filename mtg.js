@@ -160,16 +160,19 @@ function hand_combinations(cards, hand_size, minimums, maximums) {
   // vertical, as opposed to horizontal, range from
   // the spreadsheet.
   cards = cards[0] || [cards];
-  maximums = maximums || [];
-  maximums = maximums[0];
-  minimums = minimums || [];
-  minimums = minimums[0];
 
   if (maximums == undefined) {
     maximums = new Array(cards.length);
   }
+  else {
+    maximums = maximums[0] || [maximums];
+  }
+
   if (minimums == undefined) {
     minimums = new Array(cards.length);
+  }
+  else {
+    minimums = minimums[0] || [minimums];
   }
 
   // Minimums default to 0
